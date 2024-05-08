@@ -49,11 +49,10 @@ public class nettyChat {
         logger.info("== WebSocketServer start");
 
         bossGroup = new NioEventLoopGroup(1);
-        workerGroup = new NioEventLoopGroup();
+        workerGroup = new NioEventLoopGroup(1);
 
         ServerBootstrap b = new ServerBootstrap();
-        b.option(ChannelOption.SO_BACKLOG, 99999);
-        b.option(ChannelOption.MAX_MESSAGES_PER_READ, Integer.MAX_VALUE);
+        b.option(ChannelOption.SO_BACKLOG, 5000);
 
         b.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)

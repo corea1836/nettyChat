@@ -20,6 +20,7 @@ import static com.netty.chat.nettyChat.allChannels;
 
 
 @Slf4j
+@ChannelHandler.Sharable
 public class HttpServerHandler extends ChannelInboundHandlerAdapter {
 
     private WebSocketServerHandshaker handshaker;
@@ -32,16 +33,17 @@ public class HttpServerHandler extends ChannelInboundHandlerAdapter {
 //                    ctx.pipeline().remove("wsencoder");
 //                }
 //            });
+            log.info("i am " + ctx.channel().toString());
             if (msg instanceof HttpRequest) {
                 HttpRequest httpRequest = (HttpRequest) msg;
                 HttpHeaders headers = httpRequest.headers();
                 if (httpRequest.uri().equals("/test")) {
-                    logger.info("Total channels: {}", allChannels.size());
-                    Long startTime = System.currentTimeMillis();
-                    final String message = new String("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea ");
-//                    BinaryWebSocketFrame frame = new BinaryWebSocketFrame(Unpooled.copiedBuffer(message.getBytes(StandardCharsets.UTF_8)));
-//                    ByteBuf content = frame.content();
-                    TextWebSocketFrame frame = new TextWebSocketFrame(message);
+//                    logger.info("Total channels: {}", allChannels.size());
+//                    Long startTime = System.currentTimeMillis();
+//                    final String message = new String("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea ");
+////                    BinaryWebSocketFrame frame = new BinaryWebSocketFrame(Unpooled.copiedBuffer(message.getBytes(StandardCharsets.UTF_8)));
+////                    ByteBuf content = frame.content();
+//                    TextWebSocketFrame frame = new TextWebSocketFrame(message);
 //                    SimpleWebSocketFrameCodec codec = new SimpleWebSocketFrameCodec(false);
 //                    List<Object> out = new ArrayList<>();
 //                    codec.encode(ctx, frame, out);
@@ -49,7 +51,13 @@ public class HttpServerHandler extends ChannelInboundHandlerAdapter {
 //
 //                        boolean wrote = false;
 //                        while(c.isWritable()) {
-//                            c.write((frame.retainedDuplicate()));
+//                            c.write((frame.retainedDuplicate())).addListener(f -> {
+//                                if (f.isSuccess()) {
+//                                    log.info("success");
+//                                } else {
+//                                    log.error(String.valueOf(f.cause()));
+//                                }
+//                            });
 //                            wrote = true;
 //                        }
 //                        if(wrote) {
@@ -57,9 +65,7 @@ public class HttpServerHandler extends ChannelInboundHandlerAdapter {
 //                        }
 //                    });
 //                    ChannelGroupFuture future = allChannels.writeAndFlush(((ByteBuf) out.get(0)).retainedDuplicate(), ChannelMatchers.all(), true);
-                    ChannelGroupFuture future = allChannels.writeAndFlush(frame).addListener(f -> {
-                       Thread.sleep(50);
-                    });
+
 //                future.addListener(new ChannelGroupFutureListener() {
 //                    @Override
 //                    public void operationComplete(ChannelGroupFuture future) throws Exception {
@@ -71,11 +77,12 @@ public class HttpServerHandler extends ChannelInboundHandlerAdapter {
 //                    }
 //                });
 //                ((ByteBuf) out.get(0)).release();
-                Long endTime = System.currentTimeMillis();
-                logger.info("Elapsed time: {} ms", (endTime - startTime));
-                ReferenceCountUtil.release(msg); // 메시지 해제 추가
-               // ReferenceCountUtil.release(frame); // 메시지 해제 추가
-                ctx.close();
+//                Long endTime = System.currentTimeMillis();
+//                logger.info("Elapsed time: {} ms", (endTime - startTime));
+//                ReferenceCountUtil.release(msg); // 메시지 해제 추가
+//               // ReferenceCountUtil.release(frame); // 메시지 해제 추가
+//                ctx.close();
+                    ctx.fireChannelRead(msg);
 
             } else if (headers.get(HttpHeaderNames.CONNECTION).equalsIgnoreCase("Upgrade") &&
                     headers.get(HttpHeaderNames.UPGRADE).equalsIgnoreCase("WebSocket")) {
@@ -88,8 +95,9 @@ public class HttpServerHandler extends ChannelInboundHandlerAdapter {
                 ReferenceCountUtil.release(msg); // 메시지 해제 추가
             }
         }
-        if (msg instanceof WebSocketFrame) {
+        else if (msg instanceof WebSocketFrame) {
             if (msg instanceof CloseWebSocketFrame) {
+                log.info(ctx.channel().toString() + " is leave");
                 ctx.close();
             }
         }
@@ -118,5 +126,10 @@ public class HttpServerHandler extends ChannelInboundHandlerAdapter {
         log.info(String.valueOf(cause.getCause()));
         log.info(cause.getMessage());
         ctx.close();
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        ctx.fireChannelInactive();
     }
 }
